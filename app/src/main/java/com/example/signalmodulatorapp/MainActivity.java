@@ -47,12 +47,12 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private LineChart lineChart;
     private SeekBar seekBarAmplitude, seekBarFrequency, seekBarPhase;
-    private float amplitude = 10f;
-    private float frequency = 1f;
+    private float amplitude = 1.0f;
+    private float frequency = 2.0f;
     private float phase = 0f;
     private Handler handler = new Handler();
     private float timeOffset = 0f;
-    private static final float TIME_INCREMENT = 0.1f;
+    private static final float TIME_INCREMENT = 0.05f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,15 +79,13 @@ public class MainActivity extends AppCompatActivity {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
 
         YAxis yAxis = lineChart.getAxisLeft();
-        // Ajustamos los límites para acomodar las tres señales separadas
-        yAxis.setAxisMaximum(6f);  // Aumentado para dar espacio a las tres señales
+        yAxis.setAxisMaximum(6f);
         yAxis.setAxisMinimum(-6f);
 
         lineChart.setTouchEnabled(true);
         lineChart.setDragEnabled(true);
         lineChart.setScaleEnabled(true);
 
-        // Opcional: Añadir líneas de cuadrícula para mejor visualización
         xAxis.setDrawGridLines(true);
         yAxis.setDrawGridLines(true);
         xAxis.setGridColor(Color.LTGRAY);
@@ -98,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
         seekBarAmplitude.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                amplitude = progress;
+                amplitude = progress / 10f;
                 updateChart();
             }
 
@@ -112,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
         seekBarFrequency.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                frequency = progress / 10f; // Para obtener decimales
+                frequency = progress / 10f;
                 updateChart();
             }
 
@@ -126,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         seekBarPhase.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                phase = (float) Math.toRadians(progress); // Convertir grados a radianes
+                phase = (float) Math.toRadians(progress);
                 updateChart();
             }
 
@@ -147,26 +145,28 @@ public class MainActivity extends AppCompatActivity {
         float amOffset = 4f;
         float fmOffset = 0f;
         float pmOffset = -4f;
+        float modulationIndexFM = 2.0f;
+        float modulationIndexPM = (float) Math.PI / 4;
+        float integralModulator = 0f;
+        float dt = 0.01f;
 
         for (int i = 0; i <= 360; i++) {
             float t = (float) i;
-            float time = t / 10f;
-            // Añadimos timeOffset para crear el efecto de movimiento
+            float time = t / 100f;
             float currentTime = time + timeOffset;
 
-            // AM con offset
-            float carrier = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime + phase);
             float modulator = (float) Math.sin(2 * Math.PI * frequency * currentTime);
-            float amSignal = (1 + (amplitude/2) * modulator) * carrier + amOffset;
+            integralModulator += modulator * dt;
 
-            // FM con offset
-            float modulationIndex = 1.0f;
-            float fmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime +
-                    modulationIndex * Math.sin(2 * Math.PI * frequency * currentTime)) + fmOffset;
+            float carrier = (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime);
 
-            // PM con offset
+            float amSignal = amplitude * (1 + modulator) * carrier + amOffset;
+
+            float fmSignal = (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime +
+                    modulationIndexFM * integralModulator) + fmOffset;
+
             float pmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime +
-                    phase + (amplitude/2) * Math.sin(2 * Math.PI * frequency * currentTime)) + pmOffset;
+                    modulationIndexPM * modulator) + pmOffset;
 
             amEntries.add(new Entry(time, amSignal));
             fmEntries.add(new Entry(time, fmSignal));
@@ -199,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 timeOffset += TIME_INCREMENT;
                 updateChart();
-                handler.postDelayed(this, 50); // Actualizar cada 50ms
+                handler.postDelayed(this, 350);
             }
         }, 50);
     }
@@ -209,5 +209,4 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
     }
-
 }
