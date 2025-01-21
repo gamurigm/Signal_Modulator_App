@@ -157,16 +157,16 @@ public class MainActivity extends AppCompatActivity {
             // AM con offset
             float carrier = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime + phase);
             float modulator = (float) Math.sin(2 * Math.PI * frequency * currentTime);
-            float amSignal = (1 + (amplitude/10) * modulator) * carrier + amOffset;
+            float amSignal = (1 + (amplitude/2) * modulator) * carrier + amOffset;
 
             // FM con offset
-            float modulationIndex = amplitude / 2;
+            float modulationIndex = 1.0f;
             float fmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime +
                     modulationIndex * Math.sin(2 * Math.PI * frequency * currentTime)) + fmOffset;
 
             // PM con offset
             float pmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime +
-                    phase + (amplitude/5) * Math.sin(2 * Math.PI * frequency * currentTime)) + pmOffset;
+                    phase + (amplitude/2) * Math.sin(2 * Math.PI * frequency * currentTime)) + pmOffset;
 
             amEntries.add(new Entry(time, amSignal));
             fmEntries.add(new Entry(time, fmSignal));
