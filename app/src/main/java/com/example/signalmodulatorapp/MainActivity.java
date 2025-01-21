@@ -141,32 +141,40 @@ public class MainActivity extends AppCompatActivity {
         List<Entry> fmEntries = new ArrayList<>();
         List<Entry> pmEntries = new ArrayList<>();
 
-        float carrierFrequency = 10f;
+        float carrierAmplitude = amplitude; // Ac: Amplitud de la portadora
+        float carrierFrequency = 7 * frequency; // fc: Frecuencia de la portadora
         float amOffset = 4f;
         float fmOffset = 0f;
         float pmOffset = -4f;
-        float modulationIndexFM = 2.0f;
-        float modulationIndexPM = (float) Math.PI / 4;
+
+        // Variable para acumular la integral para FM
         float integralModulator = 0f;
         float dt = 0.01f;
 
         for (int i = 0; i <= 360; i++) {
             float t = (float) i;
             float time = t / 100f;
-            float currentTime = time + timeOffset;
+            float currentTime = time - timeOffset;
 
+            // Señal moduladora m(t) común
             float modulator = (float) Math.sin(2 * Math.PI * frequency * currentTime);
+
+            // Integral de la moduladora para FM
             integralModulator += modulator * dt;
 
-            float carrier = (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime);
+            // AM: La fase se mantiene constante
+            float amSignal = carrierAmplitude * (1 + modulator) *
+                    (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime) + amOffset;
 
-            float amSignal = amplitude * (1 + modulator) * carrier + amOffset;
+            // FM: La fase varía según la integral: ϕ(t)=2πfct + kf∫m(τ)dτ
+            float fmSignal = carrierAmplitude *
+                    (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime +
+                            phase * integralModulator) + fmOffset;  // phase actúa como kf
 
-            float fmSignal = (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime +
-                    modulationIndexFM * integralModulator) + fmOffset;
-
-            float pmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime +
-                    modulationIndexPM * modulator) + pmOffset;
+            // PM: La fase varía directamente con m(t): ϕ(t)=2πfct + kpm(t)
+            float pmSignal = carrierAmplitude *
+                    (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime +
+                            phase * modulator) + pmOffset;  // phase actúa como kp
 
             amEntries.add(new Entry(time, amSignal));
             fmEntries.add(new Entry(time, fmSignal));
