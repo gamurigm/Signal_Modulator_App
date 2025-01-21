@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupChart() {
         Description description = new Description();
-        description.setText("Señales");
+        description.setText("Señales Moduladas");
         lineChart.setDescription(description);
         lineChart.getAxisRight().setDrawLabels(false);
 
@@ -75,12 +75,19 @@ public class MainActivity extends AppCompatActivity {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
 
         YAxis yAxis = lineChart.getAxisLeft();
-        yAxis.setAxisMaximum(3f);
-        yAxis.setAxisMinimum(-3f);
+        // Ajustamos los límites para acomodar las tres señales separadas
+        yAxis.setAxisMaximum(6f);  // Aumentado para dar espacio a las tres señales
+        yAxis.setAxisMinimum(-6f);
 
         lineChart.setTouchEnabled(true);
         lineChart.setDragEnabled(true);
         lineChart.setScaleEnabled(true);
+
+        // Opcional: Añadir líneas de cuadrícula para mejor visualización
+        xAxis.setDrawGridLines(true);
+        yAxis.setDrawGridLines(true);
+        xAxis.setGridColor(Color.LTGRAY);
+        yAxis.setGridColor(Color.LTGRAY);
     }
 
     private void setupSeekBars() {
@@ -132,45 +139,49 @@ public class MainActivity extends AppCompatActivity {
         List<Entry> fmEntries = new ArrayList<>();
         List<Entry> pmEntries = new ArrayList<>();
 
-        float carrierFrequency = 10f; // Frecuencia portadora
+        float carrierFrequency = 10f;
+        // Definimos offsets verticales para separar las señales
+        float amOffset = 4f;   // AM estará arriba
+        float fmOffset = 0f;   // FM en el medio
+        float pmOffset = -4f;  // PM abajo
 
         for (int i = 0; i <= 360; i++) {
             float t = (float) i;
             float time = t / 10f;
 
-            // AM
+            // AM con offset
             float carrier = (float) Math.sin(2 * Math.PI * carrierFrequency * time + phase);
             float modulator = (float) Math.sin(2 * Math.PI * frequency * time);
-            float amSignal = (1 + (amplitude/10) * modulator) * carrier;
+            float amSignal = (1 + (amplitude/10) * modulator) * carrier + amOffset;
 
-            // FM - Aumentamos el índice de modulación para hacerlo más visible
-            float modulationIndex = amplitude / 2; // Ajustado para mayor desviación de frecuencia
+            // FM con offset
+            float modulationIndex = amplitude / 2;
             float fmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * time +
-                    modulationIndex * Math.sin(2 * Math.PI * frequency * time));
+                    modulationIndex * Math.sin(2 * Math.PI * frequency * time)) + fmOffset;
 
-            // PM
+            // PM con offset
             float pmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * time +
-                    phase + (amplitude/5) * Math.sin(2 * Math.PI * frequency * time));
+                    phase + (amplitude/5) * Math.sin(2 * Math.PI * frequency * time)) + pmOffset;
 
             amEntries.add(new Entry(time, amSignal));
             fmEntries.add(new Entry(time, fmSignal));
             pmEntries.add(new Entry(time, pmSignal));
         }
 
-        LineDataSet amDataSet = new LineDataSet(amEntries, "AM");
+        LineDataSet amDataSet = new LineDataSet(amEntries, "AM (Superior)");
         amDataSet.setColor(Color.RED);
         amDataSet.setDrawCircles(false);
-        amDataSet.setLineWidth(1f);
+        amDataSet.setLineWidth(1.5f);
 
-        LineDataSet fmDataSet = new LineDataSet(fmEntries, "FM");
+        LineDataSet fmDataSet = new LineDataSet(fmEntries, "FM (Centro)");
         fmDataSet.setColor(Color.BLUE);
         fmDataSet.setDrawCircles(false);
-        fmDataSet.setLineWidth(1f);
+        fmDataSet.setLineWidth(1.5f);
 
-        LineDataSet pmDataSet = new LineDataSet(pmEntries, "PM");
+        LineDataSet pmDataSet = new LineDataSet(pmEntries, "PM (Inferior)");
         pmDataSet.setColor(Color.GREEN);
         pmDataSet.setDrawCircles(false);
-        pmDataSet.setLineWidth(1f);
+        pmDataSet.setLineWidth(1.5f);
 
         LineData lineData = new LineData(amDataSet, fmDataSet, pmDataSet);
         lineChart.setData(lineData);
