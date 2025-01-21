@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import android.os.Bundle;
+import android.widget.SeekBar;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -41,62 +42,118 @@ import com.github.mikephil.charting.data.Entry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 public class MainActivity extends AppCompatActivity {
 
     private LineChart lineChart;
-    private List<String> xValues;
+    private SeekBar seekBarAmplitude, seekBarFrequency, seekBarPhase;
+    private float amplitude = 10f;
+    private float frequency = 1f;
+    private float phase = 0f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
         lineChart = findViewById(R.id.chart);
+        seekBarAmplitude = findViewById(R.id.seekBarAmplitude);
+        seekBarFrequency = findViewById(R.id.seekBarFrequency);
+        seekBarPhase = findViewById(R.id.seekBarPhase);
+
+        setupChart();
+        setupSeekBars();
+    }
+
+    private void setupChart() {
         Description description = new Description();
-        description.setText("Seniales");
-        description.setPosition(150f, 15f);
+        description.setText("Señales");
         lineChart.setDescription(description);
         lineChart.getAxisRight().setDrawLabels(false);
-        xValues = Arrays.asList("0", "1", "2", "3");
 
         XAxis xAxis = lineChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(xValues));
-        xAxis.setLabelCount(4);
-        xAxis.setGranularity(1f);
 
         YAxis yAxis = lineChart.getAxisLeft();
         yAxis.setAxisMaximum(50f);
-        yAxis.setAxisMinimum(0f);
-        yAxis.setAxisLineWidth(1f);
-        yAxis.setAxisLineColor(Color.BLACK);
+        yAxis.setAxisMinimum(-50f);
 
-        List<Entry> entries1 = new ArrayList<>();
+        updateChart();
+    }
 
-        entries1.add(new Entry(0, 10f));
-        entries1.add(new Entry(1, 10f));
-        entries1.add(new Entry(2, 15f));
-        entries1.add(new Entry(3, 45f));
+    private void setupSeekBars() {
+        seekBarAmplitude.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                amplitude = progress;
+                updateChart();
+            }
 
-        List<Entry> entries2 = new ArrayList<>();
-        entries2.add(new Entry(0, 5f));
-        entries2.add(new Entry(1, 15f));
-        entries2.add(new Entry(2, 25f));
-        entries2.add(new Entry(3, 30f));
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
 
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
 
-        LineDataSet dataSet1 = new LineDataSet(entries1, "FM");
-        dataSet1.setColor(Color.BLUE);
+        seekBarFrequency.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                frequency = progress / 10f; // Para obtener decimales
+                updateChart();
+            }
 
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
 
-        LineDataSet dataSet2 = new LineDataSet(entries2, "AM");
-        dataSet2.setColor(Color.BLACK);
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
 
+        seekBarPhase.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                phase = (float) Math.toRadians(progress); // Convertir grados a radianes
+                updateChart();
+            }
 
-        LineData lineData = new LineData(dataSet1,dataSet2);
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
 
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private void updateChart() {
+        List<Entry> amEntries = new ArrayList<>();
+        List<Entry> fmEntries = new ArrayList<>();
+        List<Entry> pmEntries = new ArrayList<>();
+
+        for (int i = 0; i <= 360; i++) {
+            float t = (float) i;
+            float time = t / 10f; // Escalar tiempo para más puntos
+            float amSignal = amplitude * (float) Math.sin(2 * Math.PI * frequency * time + phase);
+            float fmSignal = amplitude * (float) Math.sin(2 * Math.PI * (frequency + Math.sin(2 * Math.PI * 0.1 * time)) * time);
+            float pmSignal = amplitude * (float) Math.sin(2 * Math.PI * frequency * time + (float) Math.sin(phase * time));
+
+            amEntries.add(new Entry(time, amSignal));
+            fmEntries.add(new Entry(time, fmSignal));
+            pmEntries.add(new Entry(time, pmSignal));
+        }
+
+        LineDataSet amDataSet = new LineDataSet(amEntries, "AM");
+        amDataSet.setColor(Color.RED);
+        amDataSet.setDrawCircles(false);
+
+        LineDataSet fmDataSet = new LineDataSet(fmEntries, "FM");
+        fmDataSet.setColor(Color.BLUE);
+        fmDataSet.setDrawCircles(false);
+
+        LineDataSet pmDataSet = new LineDataSet(pmEntries, "PM");
+        pmDataSet.setColor(Color.GREEN);
+        pmDataSet.setDrawCircles(false);
+
+        LineData lineData = new LineData(amDataSet, fmDataSet, pmDataSet);
         lineChart.setData(lineData);
         lineChart.invalidate();
     }
