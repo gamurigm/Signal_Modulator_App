@@ -141,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
         List<Entry> fmEntries = new ArrayList<>();
         List<Entry> pmEntries = new ArrayList<>();
 
-        float carrierAmplitude = amplitude; // Ac: Amplitud de la portadora
+        float carrierAmplitude = 1f; // Ac: Amplitud de la portadora
         float carrierFrequency = 7 * frequency; // fc: Frecuencia de la portadora
         float amOffset = 4f;
         float fmOffset = 0f;
@@ -163,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
             integralModulator += modulator * dt;
 
             // AM: La fase se mantiene constante
-            float amSignal = carrierAmplitude * (1 + modulator) *
+            float amSignal = carrierAmplitude * amplitude * (1 + modulator) *
                     (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime) + amOffset;
 
             // FM: La fase varía según la integral: ϕ(t)=2πfct + kf∫m(τ)dτ
