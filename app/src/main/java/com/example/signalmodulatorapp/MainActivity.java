@@ -42,6 +42,7 @@ import com.github.mikephil.charting.data.Entry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
     private LineChart lineChart;
@@ -74,10 +75,12 @@ public class MainActivity extends AppCompatActivity {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
 
         YAxis yAxis = lineChart.getAxisLeft();
-        yAxis.setAxisMaximum(50f);
-        yAxis.setAxisMinimum(-50f);
+        yAxis.setAxisMaximum(3f);
+        yAxis.setAxisMinimum(-3f);
 
-        updateChart();
+        lineChart.setTouchEnabled(true);
+        lineChart.setDragEnabled(true);
+        lineChart.setScaleEnabled(true);
     }
 
     private void setupSeekBars() {
@@ -129,12 +132,25 @@ public class MainActivity extends AppCompatActivity {
         List<Entry> fmEntries = new ArrayList<>();
         List<Entry> pmEntries = new ArrayList<>();
 
+        float carrierFrequency = 10f; // Frecuencia portadora
+
         for (int i = 0; i <= 360; i++) {
             float t = (float) i;
-            float time = t / 10f; // Escalar tiempo para más puntos
-            float amSignal = amplitude * (float) Math.sin(2 * Math.PI * frequency * time + phase);
-            float fmSignal = amplitude * (float) Math.sin(2 * Math.PI * (frequency + Math.sin(2 * Math.PI * 0.1 * time)) * time);
-            float pmSignal = amplitude * (float) Math.sin(2 * Math.PI * frequency * time + (float) Math.sin(phase * time));
+            float time = t / 10f;
+
+            // AM
+            float carrier = (float) Math.sin(2 * Math.PI * carrierFrequency * time + phase);
+            float modulator = (float) Math.sin(2 * Math.PI * frequency * time);
+            float amSignal = (1 + (amplitude/10) * modulator) * carrier;
+
+            // FM - Aumentamos el índice de modulación para hacerlo más visible
+            float modulationIndex = amplitude / 2; // Ajustado para mayor desviación de frecuencia
+            float fmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * time +
+                    modulationIndex * Math.sin(2 * Math.PI * frequency * time));
+
+            // PM
+            float pmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * time +
+                    phase + (amplitude/5) * Math.sin(2 * Math.PI * frequency * time));
 
             amEntries.add(new Entry(time, amSignal));
             fmEntries.add(new Entry(time, fmSignal));
@@ -144,14 +160,17 @@ public class MainActivity extends AppCompatActivity {
         LineDataSet amDataSet = new LineDataSet(amEntries, "AM");
         amDataSet.setColor(Color.RED);
         amDataSet.setDrawCircles(false);
+        amDataSet.setLineWidth(1f);
 
         LineDataSet fmDataSet = new LineDataSet(fmEntries, "FM");
         fmDataSet.setColor(Color.BLUE);
         fmDataSet.setDrawCircles(false);
+        fmDataSet.setLineWidth(1f);
 
         LineDataSet pmDataSet = new LineDataSet(pmEntries, "PM");
         pmDataSet.setColor(Color.GREEN);
         pmDataSet.setDrawCircles(false);
+        pmDataSet.setLineWidth(1f);
 
         LineData lineData = new LineData(amDataSet, fmDataSet, pmDataSet);
         lineChart.setData(lineData);
