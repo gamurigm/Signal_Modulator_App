@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import android.os.Bundle;
+import android.os.Handler;
 import android.widget.SeekBar;
 
 import androidx.activity.EdgeToEdge;
@@ -44,12 +45,14 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
     private LineChart lineChart;
     private SeekBar seekBarAmplitude, seekBarFrequency, seekBarPhase;
     private float amplitude = 10f;
     private float frequency = 1f;
     private float phase = 0f;
+    private Handler handler = new Handler();
+    private float timeOffset = 0f;
+    private static final float TIME_INCREMENT = 0.1f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
 
         setupChart();
         setupSeekBars();
+        startSignalAnimation();
     }
 
     private void setupChart() {
@@ -140,28 +144,29 @@ public class MainActivity extends AppCompatActivity {
         List<Entry> pmEntries = new ArrayList<>();
 
         float carrierFrequency = 10f;
-        // Definimos offsets verticales para separar las señales
-        float amOffset = 4f;   // AM estará arriba
-        float fmOffset = 0f;   // FM en el medio
-        float pmOffset = -4f;  // PM abajo
+        float amOffset = 4f;
+        float fmOffset = 0f;
+        float pmOffset = -4f;
 
         for (int i = 0; i <= 360; i++) {
             float t = (float) i;
             float time = t / 10f;
+            // Añadimos timeOffset para crear el efecto de movimiento
+            float currentTime = time + timeOffset;
 
             // AM con offset
-            float carrier = (float) Math.sin(2 * Math.PI * carrierFrequency * time + phase);
-            float modulator = (float) Math.sin(2 * Math.PI * frequency * time);
+            float carrier = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime + phase);
+            float modulator = (float) Math.sin(2 * Math.PI * frequency * currentTime);
             float amSignal = (1 + (amplitude/10) * modulator) * carrier + amOffset;
 
             // FM con offset
             float modulationIndex = amplitude / 2;
-            float fmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * time +
-                    modulationIndex * Math.sin(2 * Math.PI * frequency * time)) + fmOffset;
+            float fmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime +
+                    modulationIndex * Math.sin(2 * Math.PI * frequency * currentTime)) + fmOffset;
 
             // PM con offset
-            float pmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * time +
-                    phase + (amplitude/5) * Math.sin(2 * Math.PI * frequency * time)) + pmOffset;
+            float pmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime +
+                    phase + (amplitude/5) * Math.sin(2 * Math.PI * frequency * currentTime)) + pmOffset;
 
             amEntries.add(new Entry(time, amSignal));
             fmEntries.add(new Entry(time, fmSignal));
@@ -187,4 +192,22 @@ public class MainActivity extends AppCompatActivity {
         lineChart.setData(lineData);
         lineChart.invalidate();
     }
+
+    private void startSignalAnimation() {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                timeOffset += TIME_INCREMENT;
+                updateChart();
+                handler.postDelayed(this, 50); // Actualizar cada 50ms
+            }
+        }, 50);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
+    }
+
 }
