@@ -1,5 +1,26 @@
 package com.example.signalmodulatorapp;
 
+import android.graphics.Color;
+import android.os.Bundle;
+
+import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Description;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.data.Entry;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import android.os.Bundle;
 
 import androidx.activity.EdgeToEdge;
@@ -38,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         description.setPosition(150f, 15f);
         lineChart.setDescription(description);
         lineChart.getAxisRight().setDrawLabels(false);
-        xValues = Arrays.asList("1", "2", "3", "4");
+        xValues = Arrays.asList("0", "1", "2", "3");
 
         XAxis xAxis = lineChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
@@ -47,10 +68,10 @@ public class MainActivity extends AppCompatActivity {
         xAxis.setGranularity(1f);
 
         YAxis yAxis = lineChart.getAxisLeft();
-        yAxis.setAxisMaximum(0f);
-        yAxis.setAxisMinimum(100f);
+        yAxis.setAxisMaximum(50f);
+        yAxis.setAxisMinimum(0f);
         yAxis.setAxisLineWidth(1f);
-        yAxis.setAxisLineColor(android.R.color.holo_blue_dark);
+        yAxis.setAxisLineColor(Color.BLACK);
 
         List<Entry> entries1 = new ArrayList<>();
 
@@ -61,14 +82,19 @@ public class MainActivity extends AppCompatActivity {
 
         List<Entry> entries2 = new ArrayList<>();
         entries2.add(new Entry(0, 5f));
-        entries2.add(new Entry(2, 15f));
-        entries2.add(new Entry(0, 25f));
-        entries2.add(new Entry(0, 30f));
+        entries2.add(new Entry(1, 15f));
+        entries2.add(new Entry(2, 25f));
+        entries2.add(new Entry(3, 30f));
+
 
         LineDataSet dataSet1 = new LineDataSet(entries1, "FM");
-        dataSet1.setCircleColor(android.R.color.holo_red_dark);
+        dataSet1.setColor(Color.BLUE);
+
 
         LineDataSet dataSet2 = new LineDataSet(entries2, "AM");
+        dataSet2.setColor(Color.BLACK);
+
+
         LineData lineData = new LineData(dataSet1,dataSet2);
 
         lineChart.setData(lineData);
