@@ -160,33 +160,48 @@ public class MainActivity extends AppCompatActivity {
         List<Entry> fmEntries = new ArrayList<>();
         List<Entry> pmEntries = new ArrayList<>();
 
-        float carrierFrequency = 10f;
-        float amOffset = 4f;
-        float fmOffset = 0f;
-        float pmOffset = -4f;
-        float modulationIndexFM = 2.0f;
-        float modulationIndexPM = (float) Math.PI / 4;
+        float carrierAmplitude = 1f; // Ac: Amplitud de la portadora
+        float modulatorAmplitude = 0.2f * amplitude; // Am: Amplitud de la moduladora
+        float carrierFrequency = 7 * frequency; // fc: Frecuencia de la portadora
+        float amOffset = 4f; // Offset para AM
+        float fmOffset = 0f; // Offset para FM
+        float pmOffset = -4f; // Offset para PM
+
+        // Índices de modulación (puedes ajustarlos según tu aplicación)
+        float ka = 0.5f; // Índice de modulación AM
+        float kf = 5f; // Índice de modulación FM
+        float kp = kf * 2 * (float) Math.PI; // Índice de modulación PM
+
+        // Reiniciar la integral del modulador al actualizar el gráfico
         float integralModulator = 0f;
-        float dt = 0.01f;
+        float dt = 0.01f; // Paso de tiempo
 
         for (int i = 0; i <= 360; i++) {
             float t = (float) i;
-            float time = t / 100f;
-            float currentTime = time + timeOffset;
+            float time = t / 100f;  // Escala temporal ajustada
+            float currentTime = time - timeOffset;
 
-            float modulator = (float) Math.sin(2 * Math.PI * frequency * currentTime);
+            // Señal moduladora m(t)
+            float modulator = modulatorAmplitude * (float) Math.sin(2 * Math.PI * frequency * currentTime);
+
+            // Calcular integral de la moduladora para FM
             integralModulator += modulator * dt;
 
-            float carrier = (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime);
+            // AM: Señal modulada en amplitud
+            float amSignal = carrierAmplitude * (1 + ka * modulator) *
+                    (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime) + amOffset;
 
-            float amSignal = amplitude * (1 + modulator) * carrier + amOffset;
+            // FM: Señal modulada en frecuencia
+            float fmSignal = carrierAmplitude *
+                    (float) Math.cos((2 * Math.PI * carrierFrequency * currentTime +
+                            kf * integralModulator) * phase) + fmOffset;
 
-            float fmSignal = (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime +
-                    modulationIndexFM * integralModulator) + fmOffset;
+            // PM: Señal modulada en fase
+            float pmSignal = carrierAmplitude *
+                    (float) Math.cos((2 * Math.PI * carrierFrequency * currentTime +
+                            kp * modulator) * phase) + pmOffset;
 
-            float pmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime +
-                    modulationIndexPM +phase * modulator) + pmOffset;
-
+            // Agregar puntos a las listas
             amEntries.add(new Entry(time, amSignal));
             fmEntries.add(new Entry(time, fmSignal));
             pmEntries.add(new Entry(time, pmSignal));

@@ -3,14 +3,19 @@ package com.example.signalmodulatorapp;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.OpenableColumns;
+import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -22,9 +27,15 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+
 public class AudioActivity extends AppCompatActivity {
     private static final int REQUEST_CODE_PICK_AUDIO = 1;
     private static final int REQUEST_CODE_PERMISSION = 2;
@@ -56,14 +67,41 @@ public class AudioActivity extends AppCompatActivity {
 
         setupCharts();
         setupSeekBars();
-
         btnLoadAudio.setOnClickListener(v -> {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_PERMISSION);
+            // Verificación de permisos para Android 13+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.READ_MEDIA_AUDIO}, REQUEST_CODE_PERMISSION);
+                } else {
+                    openAudioPicker();
+                }
             } else {
-                openAudioPicker();
+                // Código existente para versiones anteriores
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_PERMISSION);
+                } else {
+                    openAudioPicker();
+                }
+            }
+        });
+
+
+        Button btnBackToMain = findViewById(R.id.btnBackToMain);
+
+        // Configurar el clic del botón
+        btnBackToMain.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Iniciar la MainActivity
+                Intent intent = new Intent(AudioActivity.this, MainActivity.class);
+                startActivity(intent);
+
+                // Finalizar la actividad actual para no regresar con "atrás"
+                finish();
             }
         });
     }
@@ -180,4 +218,20 @@ public class AudioActivity extends AppCompatActivity {
         chart.setData(lineData);
         chart.invalidate();
     }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // El permiso fue concedido
+                openAudioPicker();
+            } else {
+                // El permiso fue denegado
+                Toast.makeText(this, "Permiso denegado. No se puede cargar el archivo de audio.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
 }
