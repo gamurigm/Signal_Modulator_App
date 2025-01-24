@@ -1,5 +1,6 @@
 package com.example.signalmodulatorapp;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 
@@ -23,6 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.View;
+import android.widget.Button;
 import android.widget.SeekBar;
 
 import androidx.activity.EdgeToEdge;
@@ -45,6 +48,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+
+    private Button btnSwitchToAudio;
     private LineChart lineChart;
     private SeekBar seekBarAmplitude, seekBarFrequency, seekBarPhase;
     private float amplitude = 1.0f;
@@ -56,8 +61,22 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        btnSwitchToAudio = findViewById(R.id.btnSwitchToAudio);
+        // Configurar el listener del botón
+        btnSwitchToAudio.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Cambiar a AudioActivity
+                Intent intent = new Intent(MainActivity.this, AudioActivity.class);
+                startActivity(intent);
+            }
+        });
+
 
         lineChart = findViewById(R.id.chart);
         seekBarAmplitude = findViewById(R.id.seekBarAmplitude);
@@ -141,40 +160,32 @@ public class MainActivity extends AppCompatActivity {
         List<Entry> fmEntries = new ArrayList<>();
         List<Entry> pmEntries = new ArrayList<>();
 
-        float carrierAmplitude = 1f; // Ac: Amplitud de la portadora
-        float carrierFrequency = 7 * frequency; // fc: Frecuencia de la portadora
+        float carrierFrequency = 10f;
         float amOffset = 4f;
         float fmOffset = 0f;
         float pmOffset = -4f;
-
-        // Variable para acumular la integral para FM
+        float modulationIndexFM = 2.0f;
+        float modulationIndexPM = (float) Math.PI / 4;
         float integralModulator = 0f;
         float dt = 0.01f;
 
         for (int i = 0; i <= 360; i++) {
             float t = (float) i;
             float time = t / 100f;
-            float currentTime = time - timeOffset;
+            float currentTime = time + timeOffset;
 
-            // Señal moduladora m(t) común
             float modulator = (float) Math.sin(2 * Math.PI * frequency * currentTime);
-
-            // Integral de la moduladora para FM
             integralModulator += modulator * dt;
 
-            // AM: La fase se mantiene constante
-            float amSignal = carrierAmplitude * amplitude * (1 + modulator) *
-                    (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime) + amOffset;
+            float carrier = (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime);
 
-            // FM: La fase varía según la integral: ϕ(t)=2πfct + kf∫m(τ)dτ
-            float fmSignal = carrierAmplitude *
-                    (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime +
-                            phase * integralModulator) + fmOffset;  // phase actúa como kf
+            float amSignal = amplitude * (1 + modulator) * carrier + amOffset;
 
-            // PM: La fase varía directamente con m(t): ϕ(t)=2πfct + kpm(t)
-            float pmSignal = carrierAmplitude *
-                    (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime +
-                            phase * modulator) + pmOffset;  // phase actúa como kp
+            float fmSignal = (float) Math.cos(2 * Math.PI * carrierFrequency * currentTime +
+                    modulationIndexFM * integralModulator) + fmOffset;
+
+            float pmSignal = (float) Math.sin(2 * Math.PI * carrierFrequency * currentTime +
+                    modulationIndexPM +phase * modulator) + pmOffset;
 
             amEntries.add(new Entry(time, amSignal));
             fmEntries.add(new Entry(time, fmSignal));
