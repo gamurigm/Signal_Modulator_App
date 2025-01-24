@@ -5,6 +5,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.media.MediaPlayer;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
+import java.nio.ByteBuffer;
+
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,6 +37,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -182,9 +188,72 @@ public class AudioActivity extends AppCompatActivity {
     }
 
     private void processAudioFile(Uri audioUri) throws IOException {
-        audioData = new float[360];
-        for (int i = 0; i < audioData.length; i++) {
-            audioData[i] = (float) Math.sin(2 * Math.PI * i / 360);
+        audioData = extractAudioSignal(audioUri);
+        if (audioData == null) {
+            // Fallback to default sine wave
+            audioData = new float[360];
+            for (int i = 0; i < audioData.length; i++) {
+                audioData[i] = (float) Math.sin(2 * Math.PI * i / 360);
+            }
+        }
+
+        // Play audio
+        MediaPlayer mediaPlayer = MediaPlayer.create(this, audioUri);
+        mediaPlayer.start();
+    }
+
+    private float[] extractAudioSignal(Uri audioUri) throws IOException {
+        try {
+            MediaExtractor extractor = new MediaExtractor();
+            extractor.setDataSource(this, audioUri, null);
+
+            // Find audio track
+            int audioTrackIndex = -1;
+            for (int i = 0; i < extractor.getTrackCount(); i++) {
+                MediaFormat format = extractor.getTrackFormat(i);
+                String mime = format.getString(MediaFormat.KEY_MIME);
+                if (mime.startsWith("audio/")) {
+                    audioTrackIndex = i;
+                    break;
+                }
+            }
+
+            if (audioTrackIndex == -1) {
+                return null;
+            }
+
+            extractor.selectTrack(audioTrackIndex);
+
+            // Prepare buffer
+            ByteBuffer buffer = ByteBuffer.allocate(1024 * 1024);
+            List<Float> audioFloats = new ArrayList<>();
+
+            while (extractor.readSampleData(buffer, 0) > 0) {
+                byte[] bytes = new byte[buffer.remaining()];
+                buffer.get(bytes);
+
+                // Convert bytes to floats
+                for (int i = 0; i < bytes.length; i += 2) {
+                    short sample = (short) ((bytes[i+1] << 8) | (bytes[i] & 0xFF));
+                    audioFloats.add(sample / 32768f);
+                }
+
+                buffer.clear();
+                extractor.advance();
+            }
+
+            extractor.release();
+
+            // Convert to float array
+            float[] result = new float[audioFloats.size()];
+            for (int i = 0; i < audioFloats.size(); i++) {
+                result[i] = audioFloats.get(i);
+            }
+
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
